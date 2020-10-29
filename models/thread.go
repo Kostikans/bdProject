@@ -23,22 +23,22 @@ type Thread struct {
 	// Пользователь, создавший данную тему.
 	// Example: j.sparrow
 	// Required: true
-	Author string `json:"author"`
+	Author string `json:"author" db:"author"`
 
 	// Дата создания ветки на форуме.
 	// Example: 2017-01-01T00:00:00.000Z
 	// Format: date-time
-	Created *strfmt.DateTime `json:"created,omitempty"`
+	Created *strfmt.DateTime `json:"created,omitempty"  db:"created"`
 
 	// Форум, в котором расположена данная ветка обсуждения.
 	// Example: pirate-stories
 	// Read Only: true
-	Forum string `json:"forum,omitempty"`
+	Forum string `json:"forum,omitempty"  db:"forum"`
 
 	// Идентификатор ветки обсуждения.
 	// Example: 42
 	// Read Only: true
-	ID int32 `json:"id,omitempty"`
+	ID int32 `json:"id,omitempty"  db:"thread_id"`
 
 	// Описание ветки обсуждения.
 	// Example: An urgent need to reveal the hiding place of Davy Jones. Who is willing to help in this matter?
@@ -61,6 +61,8 @@ type Thread struct {
 	// Кол-во голосов непосредственно за данное сообщение форума.
 	// Read Only: true
 	Votes int32 `json:"votes,omitempty"`
+
+	Forum_ID int64 `json:"forum_id,omitempty"`
 }
 
 // Validate validates this thread

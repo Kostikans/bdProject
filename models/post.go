@@ -23,37 +23,39 @@ type Post struct {
 	// Автор, написавший данное сообщение.
 	// Example: j.sparrow
 	// Required: true
-	Author string `json:"author"`
+	Author string `json:"author" db:"author"`
 
 	// Дата создания сообщения на форуме.
 	// Read Only: true
 	// Format: date-time
-	Created *strfmt.DateTime `json:"created,omitempty"`
+	Created *strfmt.DateTime `json:"created,omitempty" db:"created`
 
 	// Идентификатор форума (slug) данного сообещния.
 	// Read Only: true
-	Forum string `json:"forum,omitempty"`
+	Forum string `json:"forum,omitempty" db:"forum""`
 
 	// Идентификатор данного сообщения.
 	// Read Only: true
-	ID int64 `json:"id,omitempty"`
+	ID int64 `json:"id,omitempty" db:"id"`
 
 	// Истина, если данное сообщение было изменено.
 	// Read Only: true
-	IsEdited bool `json:"isEdited,omitempty"`
+	IsEdited bool `json:"isEdited,omitempty" db:"isEdited"`
 
 	// Собственно сообщение форума.
 	// Example: We should be afraid of the Kraken.
 	// Required: true
-	Message string `json:"message"`
+	Message string `json:"message" db:"message"`
 
 	// Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
 	//
-	Parent int64 `json:"parent,omitempty"`
+	Parent int64 `json:"parent,omitempty" db:"parent"`
 
 	// Идентификатор ветви (id) обсуждения данного сообещния.
 	// Read Only: true
-	Thread int32 `json:"thread,omitempty"`
+	Thread int32 `json:"thread,omitempty" db:"thread"`
+
+	Forum_ID int64 `json:"forum_id,omitempty" db:"forum_id"`
 }
 
 // Validate validates this post

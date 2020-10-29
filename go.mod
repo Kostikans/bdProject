@@ -13,5 +13,6 @@ require (
 	github.com/go-park-mail-ru/2020_2_JMickhs v0.0.0-20201007210637-88c4fcee2e0c
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/lib/pq v1.0.0
 	github.com/sirupsen/logrus v1.7.0
 )

@@ -13,9 +13,10 @@ func NewThreadUseCase(repo thread.Repository) *ThreadUseCase {
 	return &ThreadUseCase{repo}
 }
 
-func (u *ThreadUseCase) CreateThread(thread models.Thread) (models.Thread, error) {
-	return u.repository.CreateThread(thread)
-}
 func (u *ThreadUseCase) PostUpdate(id int, update models.PostUpdate) (models.Post, error) {
 	return u.repository.PostUpdate(id, update)
+}
+
+func (u *ThreadUseCase) Postpost(slug_or_id string, posts []models.Post) ([]models.Post, error) {
+	return u.repository.Postpost(slug_or_id, posts)
 }

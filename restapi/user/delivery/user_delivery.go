@@ -77,6 +77,8 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.log.LogError(r.Context(), err)
 		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
 		return
 	}
 	json.NewEncoder(w).Encode(&user)

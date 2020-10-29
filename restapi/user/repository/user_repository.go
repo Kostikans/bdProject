@@ -1,6 +1,7 @@
 package userRepository
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -40,13 +41,13 @@ func (r *UserRepository) GetUserInfo(nickname string) (models.User, error) {
 
 func (r *UserRepository) UpdateUser(user models.User) (models.User, error) {
 
-	res, err := r.bd.Exec(restapi.UpdateUserRequest, user.Nickname, user.Email, user.Fullname, user.About)
-	_, erro := res.RowsAffected()
-	if erro != nil {
-		return user, customerror.NewCustomError(erro, http.StatusNotFound, 1)
-	}
+	res, err := r.bd.Exec(restapi.UpdateUserRequest, user.Nickname, user.Fullname, user.Email, user.About)
 	if err != nil {
 		return user, customerror.NewCustomError(err, http.StatusConflict, 1)
+	}
+	count, _ := res.RowsAffected()
+	if count == 0 {
+		return user, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
 	}
 	return user, nil
 }

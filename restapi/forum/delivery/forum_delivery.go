@@ -22,8 +22,10 @@ func NewForumHandler(r *mux.Router, fs forum.UseCase, lg *logger.CustomLogger) {
 		log:          lg,
 	}
 	r.HandleFunc("/api/forum/create", handler.CreateForum).Methods("POST")
-	r.HandleFunc("/api/forum/{slug}/info}", handler.GetForumInfo).Methods("GET")
+	r.HandleFunc("/api/forum/{slug}/details", handler.GetForumInfo).Methods("GET")
 	r.HandleFunc("/api/forum/{slug}/create", handler.CreateThread).Methods("POST")
+	r.HandleFunc("/api/forum/{slug}/users", handler.GetForumUsers).Methods("GET")
+	r.HandleFunc("/api/forum/{slug}/threads", handler.GetThreadsFromForum).Methods("GET")
 }
 
 func (h *ForumHandler) CreateForum(w http.ResponseWriter, r *http.Request) {
@@ -67,5 +69,68 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug"]
 
+	thread := models.Thread{}
+	json.NewDecoder(r.Body).Decode(&thread)
+
+	thread, err := h.ForumUseCase.CreateThread(slug, thread)
+	if err != nil {
+		if customerror.ParseCode(err) == 404 {
+			h.log.LogError(r.Context(), err)
+			w.WriteHeader(customerror.ParseCode(err))
+			err := models.Error{Message: "fdsfsd"}
+			json.NewEncoder(w).Encode(&err)
+			return
+		} else {
+
+			h.log.LogError(r.Context(), err)
+			w.WriteHeader(customerror.ParseCode(err))
+			json.NewEncoder(w).Encode(&thread)
+			return
+		}
+	}
+	json.NewEncoder(w).Encode(&thread)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ForumHandler) GetForumUsers(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug"]
+
+	thread := models.Thread{}
+	json.NewDecoder(r.Body).Decode(&thread)
+
+	users, err := h.ForumUseCase.CreateThread(slug, thread)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	json.NewEncoder(w).Encode(&users)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ForumHandler) GetThreadsFromForum(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug"]
+
+	thread := models.Thread{}
+	json.NewDecoder(r.Body).Decode(&thread)
+
+	threads, err := h.ForumUseCase.GetThreadsFromForum(slug)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	json.NewEncoder(w).Encode(&threads)
+	w.WriteHeader(http.StatusOK)
 }
