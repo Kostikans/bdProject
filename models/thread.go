@@ -38,7 +38,7 @@ type Thread struct {
 	// Идентификатор ветки обсуждения.
 	// Example: 42
 	// Read Only: true
-	ID int32 `json:"id,omitempty"  db:"thread_id"`
+	ID int32 `json:"id,omitempty" db:"id"`
 
 	// Описание ветки обсуждения.
 	// Example: An urgent need to reveal the hiding place of Davy Jones. Who is willing to help in this matter?

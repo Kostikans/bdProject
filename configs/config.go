@@ -2,7 +2,7 @@ package configs
 
 import "os"
 
-const Port = ":8080"
+const Port = ":5000"
 
 var BdConfig postgresConfig
 var PrefixPath string

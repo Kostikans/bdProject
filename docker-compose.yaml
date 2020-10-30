@@ -1,0 +1,28 @@
+version: "3.4"
+services:
+  db:
+   container_name: composepostgres
+   image: postgres
+   volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+   restart: always
+   ports:
+   - 5432:5432
+   expose:
+   - 5432
+   environment:
+       POSTGRES_PASSWORD: postgres
+       POSTGRES_USER: postgres
+       POSTGRES_DB: postgres
+  server:
+   environment:
+       PostgresPassword: docker
+       PostgresUser: docker
+       PostgresDBNameBDProject: docker
+   build: .
+   ports:
+     - 5000:5000
+   expose:
+    - 5000
+   depends_on:
+    - db

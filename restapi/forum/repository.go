@@ -7,5 +7,5 @@ type Repository interface {
 	GetForumInfo(slug string) (models.Forum, error)
 	GetForumUsers(slug string, limit int, since string, desc bool) ([]models.User, error)
 	CreateThread(slug string, thread models.Thread) (models.Thread, error)
-	GetThreadsFromForum(slug string) ([]models.Thread, error)
+	GetThreadsFromForum(slug string, limit int, since string, desc bool) ([]models.Thread, error)
 }

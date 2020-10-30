@@ -1,7 +1,6 @@
 package userRepository
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -32,7 +31,7 @@ func (r *UserRepository) CreateNewUser(user models.User) ([]models.User, error) 
 
 func (r *UserRepository) GetUserInfo(nickname string) (models.User, error) {
 	user := models.User{}
-	err := r.bd.QueryRow(restapi.GetUserRequest, nickname).Scan(&user.Nickname, &user.Email, &user.Fullname, &user.About)
+	err := r.bd.QueryRow(restapi.GetUserRequest, nickname).Scan(&user.Nickname, &user.Fullname, &user.Email, &user.About)
 	if err != nil {
 		return user, customerror.NewCustomError(err, http.StatusNotFound, 1)
 	}
@@ -40,14 +39,25 @@ func (r *UserRepository) GetUserInfo(nickname string) (models.User, error) {
 }
 
 func (r *UserRepository) UpdateUser(user models.User) (models.User, error) {
-
-	res, err := r.bd.Exec(restapi.UpdateUserRequest, user.Nickname, user.Fullname, user.Email, user.About)
+	usr, err := r.GetUserInfo(user.Nickname)
 	if err != nil {
-		return user, customerror.NewCustomError(err, http.StatusConflict, 1)
+		return usr, customerror.NewCustomError(err, customerror.ParseCode(err), 1)
 	}
-	count, _ := res.RowsAffected()
-	if count == 0 {
-		return user, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
+
+	if user.Email == "" {
+		user.Email = usr.Email
 	}
+	if user.Fullname == "" {
+		user.Fullname = usr.Fullname
+	}
+	if user.About == "" {
+		user.About = usr.About
+	}
+
+	_, err = r.bd.Exec(restapi.UpdateUserRequest, user.Nickname, user.Fullname, user.Email, user.About)
+	if err != nil {
+		return usr, customerror.NewCustomError(err, http.StatusConflict, 1)
+	}
+
 	return user, nil
 }

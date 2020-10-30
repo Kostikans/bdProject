@@ -27,6 +27,6 @@ func (u *ForumUseCase) GetForumUsers(slug string, limit int, since string, desc 
 	return u.repository.GetForumUsers(slug, limit, since, desc)
 }
 
-func (u *ForumUseCase) GetThreadsFromForum(slug string) ([]models.Thread, error) {
-	return u.repository.GetThreadsFromForum(slug)
+func (u *ForumUseCase) GetThreadsFromForum(slug string, limit int, since string, desc bool) ([]models.Thread, error) {
+	return u.repository.GetThreadsFromForum(slug, limit, since, desc)
 }

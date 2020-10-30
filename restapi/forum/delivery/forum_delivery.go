@@ -2,7 +2,9 @@ package forumDelivery
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/kostikans/bdProject/models"
@@ -37,19 +39,24 @@ func (h *ForumHandler) CreateForum(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if customerror.ParseCode(err) == 409 {
 			h.log.LogError(r.Context(), err)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(customerror.ParseCode(err))
 			json.NewEncoder(w).Encode(&forum)
 			return
-		} else {
+		} else if customerror.ParseCode(err) == 404 {
 			h.log.LogError(r.Context(), err)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(customerror.ParseCode(err))
 			err := models.Error{Message: "fdsfsd"}
 			json.NewEncoder(w).Encode(&err)
 			return
 		}
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
 	json.NewEncoder(w).Encode(&forum)
-	w.WriteHeader(http.StatusOK)
+
 }
 
 func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
@@ -59,16 +66,19 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 	forum, err := h.ForumUseCase.GetForumInfo(slug)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&forum)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("CREATE THREAD")
 	vars := mux.Vars(r)
 	slug := vars["slug"]
 
@@ -79,6 +89,7 @@ func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if customerror.ParseCode(err) == 404 {
 			h.log.LogError(r.Context(), err)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(customerror.ParseCode(err))
 			err := models.Error{Message: "fdsfsd"}
 			json.NewEncoder(w).Encode(&err)
@@ -91,46 +102,61 @@ func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&thread)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ForumHandler) GetForumUsers(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	values := r.URL.Query()
 	slug := vars["slug"]
+	since := values.Get("since")
+	limitVar := values.Get("limit")
+	limit, _ := strconv.Atoi(limitVar)
+	descVar := values.Get("desc")
+	desc, _ := strconv.ParseBool(descVar)
 
-	thread := models.Thread{}
-	json.NewDecoder(r.Body).Decode(&thread)
-
-	users, err := h.ForumUseCase.CreateThread(slug, thread)
+	users, err := h.ForumUseCase.GetForumUsers(slug, limit, since, desc)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
 		return
 
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&users)
 	w.WriteHeader(http.StatusOK)
 }
 
+var count int
+
 func (h *ForumHandler) GetThreadsFromForum(w http.ResponseWriter, r *http.Request) {
+	count++
+	fmt.Println(count)
 	vars := mux.Vars(r)
+	values := r.URL.Query()
 	slug := vars["slug"]
+	since := values.Get("since")
+	limitVar := values.Get("limit")
+	limit, _ := strconv.Atoi(limitVar)
+	descVar := values.Get("desc")
+	desc, _ := strconv.ParseBool(descVar)
 
-	thread := models.Thread{}
-	json.NewDecoder(r.Body).Decode(&thread)
-
-	threads, err := h.ForumUseCase.GetThreadsFromForum(slug)
+	threads, err := h.ForumUseCase.GetThreadsFromForum(slug, limit, since, desc)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
 		return
 
 	}
-	json.NewEncoder(w).Encode(&threads)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&threads)
 }

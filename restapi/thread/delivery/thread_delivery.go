@@ -51,6 +51,7 @@ func (h *ThreadHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(&users)
 	w.WriteHeader(http.StatusOK)
 
