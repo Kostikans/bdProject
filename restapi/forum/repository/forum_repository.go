@@ -28,15 +28,14 @@ func (r *ForumRepository) CreateThread(slug string, thread models.Thread) (model
 	if count == 0 || forum == "" {
 		return thread, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
 	}
+
 	thread.Forum = forum
 	thread.Forum_ID = forum_id
-	if thread.ID == 0 {
-		thread.ID = 42
-	}
-	_, err := r.bd.Exec(restapi.CreateThreadRequest, thread.Title, thread.Author, thread.Message, thread.Created, thread.ID, thread.Forum_ID, thread.Forum, thread.Slug)
+	err := r.bd.QueryRow(restapi.CreateThreadRequest, thread.Title, thread.Author, thread.Message, thread.Created, thread.ID, thread.Forum_ID, thread.Forum, thread.Slug).Scan(&thread.ID)
 	if err != nil {
-		r.bd.QueryRow(restapi.GetExistThreadReuqest, thread.Title).Scan(&thread.ID, &thread.Title, &thread.Author,
-			&thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+		r.bd.QueryRow(restapi.GetExistThreadReuqest, thread.Slug).Scan(&thread.ID, &thread.Title, &thread.Author,
+			&thread.Message, &thread.Votes, &thread.Slug, &thread.Created, &thread.Forum)
+
 		return thread, customerror.NewCustomError(err, http.StatusConflict, 1)
 	}
 	return thread, nil
@@ -88,7 +87,7 @@ func (r *ForumRepository) GetThreadsFromForum(slug string, limit int, since stri
 	}
 	fmt.Println(slug, limit, since, desc)
 	if desc == false && since != "" {
-		query = "SELECT t.forum,t.slug,id,t.title,author,message,votes,t.slug,t.created " +
+		query = "SELECT t.forum,t.slug,thread_id,t.title,author,message,votes,t.slug,t.created " +
 			"FROM forums as f INNER JOIN threads as t on t.forum_id=f.forum_id WHERE f.slug = $1 and t.created >= $2 ORDER BY created ASC LIMIT $3"
 		err = r.bd.Select(&threads, query, slug, since, limit)
 		if err != nil {
@@ -96,7 +95,7 @@ func (r *ForumRepository) GetThreadsFromForum(slug string, limit int, since stri
 		}
 	}
 	if desc == true && since != "" {
-		query = "SELECT t.forum,t.slug,id,t.title,author,message,votes,t.slug,t.created " +
+		query = "SELECT t.forum,t.slug,thread_id,t.title,author,message,votes,t.slug,t.created " +
 			"FROM forums as f INNER JOIN threads as t on t.forum_id=f.forum_id WHERE f.slug = $1 and t.created <= $2 ORDER BY created DESC LIMIT $3"
 		err = r.bd.Select(&threads, query, slug, since, limit)
 		if err != nil {
@@ -104,7 +103,7 @@ func (r *ForumRepository) GetThreadsFromForum(slug string, limit int, since stri
 		}
 	}
 	if desc == true && since == "" {
-		query = "SELECT t.forum,t.slug,id,t.title,author,message,votes,t.slug,created " +
+		query = "SELECT t.forum,t.slug,thread_id,t.title,author,message,votes,t.slug,created " +
 			"FROM forums as f INNER JOIN threads as t on t.forum_id=f.forum_id WHERE f.slug=$1 ORDER BY created DESC LIMIT $2"
 
 		err = r.bd.Select(&threads, query, slug, limit)
@@ -114,7 +113,7 @@ func (r *ForumRepository) GetThreadsFromForum(slug string, limit int, since stri
 	}
 
 	if desc == false && since == "" {
-		query = "SELECT t.forum,t.slug,id,t.title,author,message,votes,t.slug,created " +
+		query = "SELECT t.forum,t.slug,thread_id,t.title,author,message,votes,t.slug,created " +
 			"FROM forums as f INNER JOIN threads as t on t.forum_id=f.forum_id WHERE f.slug=$1  ORDER BY created ASC LIMIT $2"
 		err = r.bd.Select(&threads, query, slug, limit)
 		if err != nil {

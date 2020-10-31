@@ -97,6 +97,7 @@ func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 		} else {
 
 			h.log.LogError(r.Context(), err)
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(customerror.ParseCode(err))
 			json.NewEncoder(w).Encode(&thread)
 			return

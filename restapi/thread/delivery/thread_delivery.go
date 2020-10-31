@@ -3,6 +3,7 @@ package threadDelivery
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/kostikans/bdProject/models"
 	customerror "github.com/kostikans/bdProject/pkg/error"
@@ -52,12 +53,27 @@ func (h *ThreadHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(&users)
-	w.WriteHeader(http.StatusOK)
 
 }
 
 func (h *ThreadHandler) ThreadInformation(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug_or_id"]
+
+	thread, err := h.ThreadUseCase.GetThreadInformation(slug)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&thread)
 
 }
 
@@ -66,9 +82,50 @@ func (h *ThreadHandler) UpdateThread(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ThreadHandler) ThreadMsgs(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	values := r.URL.Query()
+	slug := vars["slug_or_id"]
+	sinceVar := values.Get("since")
+	since, _ := strconv.Atoi(sinceVar)
+	limitVar := values.Get("limit")
+	limit, _ := strconv.Atoi(limitVar)
+	descVar := values.Get("desc")
+	desc, _ := strconv.ParseBool(descVar)
+	sort := values.Get("sort")
+
+	posts, err := h.ThreadUseCase.GetThreadPosts(slug, limit, since, sort, desc)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&posts)
 
 }
 
 func (h *ThreadHandler) ThreadVote(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug_or_id"]
 
+	vote := models.Vote{}
+	json.NewDecoder(r.Body).Decode(&vote)
+
+	users, err := h.ThreadUseCase.Vote(slug, vote)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&users)
 }

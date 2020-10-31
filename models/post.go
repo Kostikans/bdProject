@@ -28,19 +28,19 @@ type Post struct {
 	// Дата создания сообщения на форуме.
 	// Read Only: true
 	// Format: date-time
-	Created *strfmt.DateTime `json:"created,omitempty" db:"created`
+	Created *strfmt.DateTime `json:"created,omitempty" db:"created"`
 
 	// Идентификатор форума (slug) данного сообещния.
 	// Read Only: true
-	Forum string `json:"forum,omitempty" db:"forum""`
+	Forum string `json:"forum,omitempty" db:"forum"`
 
 	// Идентификатор данного сообщения.
 	// Read Only: true
-	ID int64 `json:"id,omitempty" db:"id"`
+	ID int64 `json:"id,omitempty" db:"post_id"`
 
 	// Истина, если данное сообщение было изменено.
 	// Read Only: true
-	IsEdited bool `json:"isEdited,omitempty" db:"isEdited"`
+	IsEdited bool `json:"isEdited,omitempty" db:"is_edited"`
 
 	// Собственно сообщение форума.
 	// Example: We should be afraid of the Kraken.
@@ -53,7 +53,7 @@ type Post struct {
 
 	// Идентификатор ветви (id) обсуждения данного сообещния.
 	// Read Only: true
-	Thread int32 `json:"thread,omitempty" db:"thread"`
+	Thread int32 `json:"thread,omitempty" db:"thread_id"`
 
 	Forum_ID int64 `json:"forum_id,omitempty" db:"forum_id"`
 }
