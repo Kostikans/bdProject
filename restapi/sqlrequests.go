@@ -14,7 +14,14 @@ const PostForumRequest = "INSERT INTO forums(forum_id,slug,title,user_nickname) 
 
 const GetForumInfoRequest = "SELECT title,user_nickname ,slug,posts,threads FROM forums WHERE slug=$1"
 
-const GetForumUsersRequest = "SELECT nickname, fullname, about, email FROM "
+const GetForumUsersRequest = `SELECT distinct u.nickname COLLATE "C", fullname, about, email FROM threads as t ` +
+	`INNER JOIN posts as p on p.thread_id=t.thread_id ` +
+	`INNER JOIN users as u on (p.author = u.nickname or t.author = u.nickname) ` +
+	` WHERE (t.forum=$1 or p.forum= $1) `
+
+const GetVoteUsersRequest = `SELECT distinct u.nickname COLLATE "C", fullname,about,email from votes
+		join threads t on votes.thread_id=t.thread_id
+		join users as u on t.author = u.nickname WHERE forum=$1`
 
 const CheckForumExist = "SELECT slug,forum_id from forums WHERE slug=$1"
 
@@ -29,11 +36,18 @@ const GetThreadsFromForum = "SELECT id,t.title,author,message,votes,t.slug,creat
 
 const GetExistThreadReuqestToVote = "SELECT thread_id,title,author,message,votes,forum,slug,created FROM threads WHERE slug=$1 OR thread_id=$2"
 
-const CreatePostRequest = "INSERT INTO posts(post_id,parent,author,message,forum,thread_id,forum_id,created,parent_path) VALUES(default,$1,$2,$3,$4,$5,$6,$7,$8) RETURNING post_id"
+const GetExistThreadByIdToVote = "SELECT thread_id,title,author,message,votes,forum,slug,created,forum_id FROM threads WHERE thread_id=$1"
 
+const CreatePostRequest = "INSERT INTO posts(post_id,parent,author,message,forum,thread_id,forum_id,created) VALUES(default,$1,$2,$3,$4,$5,$6,$7) RETURNING post_id"
 const GetPrevVote = "SELECT voice FROM votes where nickname=$1 and thread_id=$2"
 const AddVote = "INSERT INTO votes(vote_id,voice,nickname,thread_id) VALUES(default,$1,$2,$3)"
 
 const UpdateVote = "Update votes set voice=$1 where nickname=$2 and thread_id=$3"
 
 const UpdateVoteCount = "Update threads Set votes=(CASE WHEN $1 > 0 Then votes + 1 ELSE votes - 1 END) WHERE thread_id=$2 RETURNING votes"
+
+const UpdateThread = "Update threads SET title=$1,message=$2 Where thread_id=$3"
+
+const PostUpdate = "Update posts SET message=$1,isEdited=true WHERE post_id=$2"
+
+const CheckPostExist = "Select post_id,author,message,created,forum,is_edited,parent,thread_id from posts WHERE post_id=$1"

@@ -22,8 +22,51 @@ func NewThreadRepository(sqlx *sqlx.DB) *ThreadRepository {
 	return &ThreadRepository{sqlx}
 }
 
+func (r *ThreadRepository) PostInfo(id int) (models.PostFull, error) {
+	full := models.PostFull{}
+	post := models.Post{}
+	err := r.bd.QueryRow(restapi.CheckPostExist, id).Scan(&post.ID, &post.Author,
+		&post.Message, &post.Created, &post.Forum, &post.IsEdited, &post.Parent, &post.Thread)
+	if err != nil {
+		return full, customerror.NewCustomError(err, http.StatusNotFound, 1)
+	}
+	thread := models.Thread{}
+	err = r.bd.QueryRow(restapi.GetExistThreadByIdToVote, post.Thread).Scan(
+		&thread.ID, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Forum, &thread.Slug, &thread.Created, &thread.Forum_ID)
+	if err != nil {
+		return full, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	forum := models.Forum{}
+	err = r.bd.QueryRow(restapi.GetForumInfoRequest, thread.Forum).Scan(
+		&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	if err != nil {
+		return full, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	author := models.User{}
+	err = r.bd.QueryRow(restapi.GetUserRequest, thread.Author).Scan(
+		&author.Nickname, &author.Fullname, &author.Email, &author.About)
+	if err != nil {
+		return full, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	full.Thread = &thread
+	full.Forum = &forum
+	full.Author = &author
+	full.Post = &post
+	return full, nil
+}
+
 func (r *ThreadRepository) PostUpdate(id int, update models.PostUpdate) (models.Post, error) {
-	return models.Post{}, nil
+	post := models.Post{}
+	err := r.bd.QueryRow(restapi.CheckPostExist, id).Scan(&post.ID, &post.Author,
+		&post.Message, &post.Created, &post.Forum, &post.IsEdited, &post.Parent, &post.Thread)
+	if err != nil {
+		return post, customerror.NewCustomError(err, http.StatusNotFound, 1)
+	}
+	_, err = r.bd.Exec(restapi.PostUpdate, update.Message, id)
+	if err != nil {
+		return post, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	return post, nil
 }
 
 func (r *ThreadRepository) Postpost(slug_or_id string, posts []models.Post) ([]models.Post, error) {
@@ -52,7 +95,7 @@ func (r *ThreadRepository) Postpost(slug_or_id string, posts []models.Post) ([]m
 		posts[index].Thread = thread_id
 
 		err := stmt.QueryRow(posts[index].Parent, posts[index].Author, posts[index].Message,
-			forum, thread_id, forum_id, create, strconv.Itoa(int(posts[index].Parent))).Scan(&posts[index].ID)
+			forum, thread_id, forum_id, create).Scan(&posts[index].ID)
 		if err != nil {
 			return posts, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
 		}
@@ -140,7 +183,6 @@ func (u *ThreadRepository) GetThreadInformation(slug_or_id string) (models.Threa
 
 func (u *ThreadRepository) GetThreadPosts(slug_or_id string, limit int, since int, sort string, desc bool) ([]models.Post, error) {
 	posts := []models.Post{}
-	fmt.Println(slug_or_id)
 	thread, err := u.GetThreadInformation(slug_or_id)
 	if err != nil {
 		return posts, err
@@ -148,62 +190,123 @@ func (u *ThreadRepository) GetThreadPosts(slug_or_id string, limit int, since in
 	if limit < 1 && limit > 10000 {
 		limit = 100
 	}
-	var cursor string
-	if since != 0 {
-		fmt.Println("fds")
-		number := strconv.Itoa(since)
-		if desc == false {
-			cursor = fmt.Sprintf(" and comm_id < %d ", number)
+	query := ""
+	if sort == "flat" || sort == "" {
+		query = u.GenerateQueryFlatSort(slug_or_id, limit, since, sort, desc)
+		if since == 0 {
+			err = u.bd.Select(&posts, query, thread.ID, limit)
 		} else {
-			cursor = fmt.Sprintf(" and comm_id > %d ", number)
+			err = u.bd.Select(&posts, query, thread.ID, since, limit)
 		}
 	}
-	var query string
-	var order string
-	if desc == false {
-		order = " ASC "
-	} else {
-		order = " DESC "
-	}
-	var parent string
-	if sort == "" || sort == "flat" {
-		if desc == true {
-			parent = "post_id DESC"
-		} else {
-			parent = "post_id ASC"
-		}
-	}
-	var where string
 	if sort == "tree" {
-		if desc == true {
-
-			parent = "parent_path DESC"
-			where = " and  parent_path <@ '0' "
-
+		query = u.GenerateQueryTreeSort(slug_or_id, limit, since, sort, desc)
+		if since == 0 {
+			err = u.bd.Select(&posts, query, thread.ID, limit)
 		} else {
-			parent = "parent_path ASC"
-			where = " and  parent_path <@ '0' "
+			err = u.bd.Select(&posts, query, thread.ID, limit)
 		}
 	}
-
 	if sort == "parent_tree" {
-		if desc == true {
-			parent = "parent_path ASC"
-			where = " and  parent_path <@ '0' "
-
+		query = u.GenerateQueryParentTreeSort(slug_or_id, limit, since, sort, desc)
+		if since == 0 {
+			err = u.bd.Select(&posts, query, thread.ID, limit)
 		} else {
-			parent = "parent_path ASC"
-			where = " and  parent_path <@ '0' "
+			err = u.bd.Select(&posts, query, thread.ID, limit)
 		}
 	}
-	fmt.Println(thread.ID, limit)
-	query = fmt.Sprintf("SELECT author,created,forum,post_id,message,parent,thread_id"+
-		" from posts WHERE thread_id=$1 %s %s ORDER BY  %s,created %s LIMIT $2", where, cursor, parent, order)
-
 	fmt.Println(query)
-	err = u.bd.Select(&posts, query, thread.ID, limit)
 	if err != nil {
 		return posts, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
 	}
 	return posts, nil
+}
+
+func (u *ThreadRepository) GenerateQueryFlatSort(slug_or_id string, limit int, since int, sort string, desc bool) string {
+	query := ""
+	if desc == true {
+		if since != 0 {
+			query = fmt.Sprintf("SELECT author,created,forum,post_id,message,parent,thread_id from posts" +
+				" WHERE thread_id=$1 and post_id < $2 ORDER BY post_id DESC LIMIT $3")
+		} else {
+			query = fmt.Sprintf("SELECT author,created,forum,post_id,message,parent,thread_id from posts" +
+				" WHERE thread_id=$1 ORDER BY post_id DESC LIMIT $2")
+		}
+	} else {
+		if since != 0 {
+			query = fmt.Sprintf("SELECT author,created,forum,post_id,message,parent,thread_id from posts" +
+				" WHERE thread_id=$1 and post_id > $2 ORDER BY post_id ASC LIMIT $3")
+		} else {
+			query = fmt.Sprintf("SELECT author,created,forum,post_id,message,parent,thread_id from posts" +
+				" WHERE thread_id=$1 ORDER BY post_id ASC LIMIT $2")
+		}
+	}
+	return query
+}
+
+func (u *ThreadRepository) GenerateQueryTreeSort(slug_or_id string, limit int, since int, sort string, desc bool) string {
+	query := ""
+	preQuery := ""
+	if since != 0 {
+		if desc == true {
+			preQuery = "AND parents < "
+		} else {
+			preQuery = "AND parents > "
+		}
+		preQuery += fmt.Sprintf("(SELECT parents FROM posts WHERE post_id = %d)", since)
+	}
+	if desc == true {
+		query = fmt.Sprintf(
+			"SELECT author,created,forum,post_id,message,parent,thread_id FROM posts "+
+				"WHERE thread_id=$1 %s ORDER BY parents DESC, post_id DESC LIMIT NULLIF($2, 0)", preQuery)
+	} else {
+		query = fmt.Sprintf(
+			"SELECT author,created,forum,post_id,message,parent,thread_id FROM posts "+
+				"WHERE thread_id=$1 %s ORDER BY parents, post_id LIMIT NULLIF($2, 0)", preQuery)
+	}
+	return query
+}
+
+func (u *ThreadRepository) GenerateQueryParentTreeSort(slug_or_id string, limit int, since int, sort string, desc bool) string {
+	var preQuery = ""
+	var query string
+
+	if since != 0 {
+		if desc == true {
+			preQuery = fmt.Sprintf("AND parents[1] < ")
+		} else {
+			preQuery = fmt.Sprintf("AND parents[1] > ")
+		}
+		preQuery += fmt.Sprintf("(SELECT parents[1] FROM posts WHERE post_id = %d)", since)
+	}
+
+	preQuery2 := fmt.Sprintf(
+		"SELECT post_id FROM posts WHERE thread_id = $1 AND parent = 0 %s", preQuery)
+
+	if desc == true {
+		preQuery2 += " ORDER BY post_id DESC LIMIT $2"
+		query = fmt.Sprintf(
+			"SELECT author,created,forum,post_id,message,parent,thread_id "+
+				"FROM posts WHERE parents[1] IN (%s) ORDER BY parents[1] DESC, parents, post_id", preQuery2)
+	} else {
+		preQuery2 += " ORDER BY post_id ASC LIMIT $2"
+		query = fmt.Sprintf(
+			"SELECT author,created,forum,post_id,message,parent,thread_id "+
+				"FROM posts WHERE parents[1] IN (%s) ORDER BY parents,post_id", preQuery2)
+	}
+	return query
+}
+
+func (u *ThreadRepository) ChangeThread(slug_or_id string, thread models.Thread) (models.Thread, error) {
+	newThread, err := u.GetThreadInformation(slug_or_id)
+	if err != nil {
+		return newThread, err
+	}
+	newThread.Title = thread.Title
+	newThread.Message = thread.Message
+	_, err = u.bd.Exec(restapi.UpdateThread, newThread.Title, newThread.Message, newThread.ID)
+	if err != nil {
+		return newThread, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	return newThread, nil
 }

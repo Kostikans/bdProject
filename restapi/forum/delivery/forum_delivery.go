@@ -129,8 +129,8 @@ func (h *ForumHandler) GetForumUsers(w http.ResponseWriter, r *http.Request) {
 
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&users)
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&users)
 }
 
 var count int

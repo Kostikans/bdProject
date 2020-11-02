@@ -66,9 +66,50 @@ func (r *ForumRepository) GetForumInfo(slug string) (models.Forum, error) {
 
 func (r *ForumRepository) GetForumUsers(slug string, limit int, since string, desc bool) ([]models.User, error) {
 	users := []models.User{}
-	err := r.bd.Select(&users, restapi.GetForumUsersRequest, slug, limit, since)
+	query := restapi.GetForumUsersRequest
+	if limit < 1 || limit >= 10000 {
+		limit = 100
+	}
+	var err error
+	_, err = r.GetForumInfo(slug)
+	if err != nil {
+		return users, err
+	}
+	fmt.Println(slug, limit, since, desc)
+	if desc == false {
+		if since != "" {
+			preQuery := ` AND lower(u.nickname) > lower($2) COLLATE "C" ORDER BY u.nickname  COLLATE "C" ASC LIMIT $3`
+			query += preQuery
+			err = r.bd.Select(&users, query, slug, since, limit)
+		} else {
+			preQuery := `ORDER BY u.nickname  COLLATE "C" LIMIT $2`
+			query += preQuery
+			err = r.bd.Select(&users, query, slug, limit)
+		}
+	} else {
+		if since != "" {
+			preQuery := ` AND lower(u.nickname) < lower($2)  COLLATE "C" ORDER BY u.nickname COLLATE "C" DESC LIMIT $3`
+			query += preQuery
+			err = r.bd.Select(&users, query, slug, since, limit)
+		} else {
+			preQuery := ` ORDER BY u.nickname  COLLATE "C" DESC LIMIT $2`
+			query += preQuery
+			err = r.bd.Select(&users, query, slug, limit)
+		}
+	}
+
 	if err != nil {
 		return users, customerror.NewCustomError(err, http.StatusNotFound, 1)
+	}
+	fmt.Println(query)
+	usersNew := []models.User{}
+	err = r.bd.Select(&usersNew, restapi.GetVoteUsersRequest, slug)
+
+	if err != nil {
+		return users, customerror.NewCustomError(err, http.StatusNotFound, 1)
+	}
+	for _, usr := range usersNew {
+		users = append(users, usr)
 	}
 	return users, nil
 }

@@ -56,6 +56,8 @@ type Post struct {
 	Thread int32 `json:"thread,omitempty" db:"thread_id"`
 
 	Forum_ID int64 `json:"forum_id,omitempty" db:"forum_id"`
+
+	Parents []int `db:"parents"`
 }
 
 // Validate validates this post

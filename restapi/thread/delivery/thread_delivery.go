@@ -24,6 +24,7 @@ func NewThreadHandler(r *mux.Router, fs thread.UseCase, lg *logger.CustomLogger)
 		log:           lg,
 	}
 
+	r.HandleFunc("/api/post/{id}/details", handler.PostInfo).Methods("GET")
 	r.HandleFunc("/api/post/{id}/details", handler.ChangeMsg).Methods("POST")
 	r.HandleFunc("/api/thread/{slug_or_id}/create", handler.CreatePost).Methods("POST")
 	r.HandleFunc("/api/thread/{slug_or_id}/details", handler.ThreadInformation).Methods("GET")
@@ -32,8 +33,48 @@ func NewThreadHandler(r *mux.Router, fs thread.UseCase, lg *logger.CustomLogger)
 	r.HandleFunc("/api/thread/{slug_or_id}/vote", handler.ThreadVote).Methods("POST")
 }
 
-func (h *ThreadHandler) ChangeMsg(w http.ResponseWriter, r *http.Request) {
+func (h *ThreadHandler) PostInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idVar := vars["id"]
+	id, _ := strconv.Atoi(idVar)
 
+	post := models.PostUpdate{}
+	json.NewDecoder(r.Body).Decode(&post)
+
+	postE, err := h.ThreadUseCase.PostInfo(id)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&postE)
+}
+
+func (h *ThreadHandler) ChangeMsg(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idVar := vars["id"]
+	id, _ := strconv.Atoi(idVar)
+
+	post := models.PostUpdate{}
+	json.NewDecoder(r.Body).Decode(&post)
+
+	postE, err := h.ThreadUseCase.PostUpdate(id, post)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&postE)
 }
 
 func (h *ThreadHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +119,25 @@ func (h *ThreadHandler) ThreadInformation(w http.ResponseWriter, r *http.Request
 }
 
 func (h *ThreadHandler) UpdateThread(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
 
+	slug := vars["slug_or_id"]
+
+	thread := models.Thread{}
+	json.NewDecoder(r.Body).Decode(&thread)
+	posts, err := h.ThreadUseCase.ChangeThread(slug, thread)
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&posts)
 }
 
 func (h *ThreadHandler) ThreadMsgs(w http.ResponseWriter, r *http.Request) {

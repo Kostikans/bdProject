@@ -30,3 +30,10 @@ func (u *ThreadUseCase) GetThreadInformation(slug_or_id string) (models.Thread, 
 func (u *ThreadUseCase) GetThreadPosts(slug_or_id string, limit int, since int, sort string, desc bool) ([]models.Post, error) {
 	return u.repository.GetThreadPosts(slug_or_id, limit, since, sort, desc)
 }
+func (u *ThreadUseCase) ChangeThread(slug_or_id string, thread models.Thread) (models.Thread, error) {
+	return u.repository.ChangeThread(slug_or_id, thread)
+}
+
+func (u *ThreadUseCase) PostInfo(id int) (models.PostFull, error) {
+	return u.repository.PostInfo(id)
+}
