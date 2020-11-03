@@ -34,6 +34,6 @@ func (u *ThreadUseCase) ChangeThread(slug_or_id string, thread models.Thread) (m
 	return u.repository.ChangeThread(slug_or_id, thread)
 }
 
-func (u *ThreadUseCase) PostInfo(id int) (models.PostFull, error) {
-	return u.repository.PostInfo(id)
+func (u *ThreadUseCase) PostInfo(id int, related string) (models.PostFull, error) {
+	return u.repository.PostInfo(id, related)
 }

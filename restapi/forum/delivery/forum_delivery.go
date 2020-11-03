@@ -2,7 +2,6 @@ package forumDelivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,8 +27,21 @@ func NewForumHandler(r *mux.Router, fs forum.UseCase, lg *logger.CustomLogger) {
 	r.HandleFunc("/api/forum/{slug}/create", handler.CreateThread).Methods("POST")
 	r.HandleFunc("/api/forum/{slug}/users", handler.GetForumUsers).Methods("GET")
 	r.HandleFunc("/api/forum/{slug}/threads", handler.GetThreadsFromForum).Methods("GET")
+	r.HandleFunc("/api/service/status", handler.GetStatusServer).Methods("GET")
+	r.HandleFunc("/api/service/clear", handler.Clear).Methods("POST")
 }
+func (h *ForumHandler) Clear(w http.ResponseWriter, r *http.Request) {
+	err := h.ForumUseCase.Clear()
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(customerror.ParseCode(err))
+		return
 
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
 func (h *ForumHandler) CreateForum(w http.ResponseWriter, r *http.Request) {
 
 	forum := models.Forum{}
@@ -78,7 +90,7 @@ func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("CREATE THREAD")
+
 	vars := mux.Vars(r)
 	slug := vars["slug"]
 
@@ -137,7 +149,6 @@ var count int
 
 func (h *ForumHandler) GetThreadsFromForum(w http.ResponseWriter, r *http.Request) {
 	count++
-	fmt.Println(count)
 	vars := mux.Vars(r)
 	values := r.URL.Query()
 	slug := vars["slug"]
@@ -156,6 +167,22 @@ func (h *ForumHandler) GetThreadsFromForum(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(&err)
 		return
 
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(&threads)
+}
+
+func (h *ForumHandler) GetStatusServer(w http.ResponseWriter, r *http.Request) {
+
+	threads, err := h.ForumUseCase.GetServerStatus()
+	if err != nil {
+		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(customerror.ParseCode(err))
+		err := models.Error{Message: "fdsfsd"}
+		json.NewEncoder(w).Encode(&err)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

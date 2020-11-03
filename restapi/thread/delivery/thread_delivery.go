@@ -37,13 +37,13 @@ func (h *ThreadHandler) PostInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idVar := vars["id"]
 	id, _ := strconv.Atoi(idVar)
+	values := r.URL.Query()
+	related := values.Get("related")
 
-	post := models.PostUpdate{}
-	json.NewDecoder(r.Body).Decode(&post)
-
-	postE, err := h.ThreadUseCase.PostInfo(id)
+	postE, err := h.ThreadUseCase.PostInfo(id, related)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
@@ -66,12 +66,14 @@ func (h *ThreadHandler) ChangeMsg(w http.ResponseWriter, r *http.Request) {
 	postE, err := h.ThreadUseCase.PostUpdate(id, post)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
 		return
 
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(&postE)
@@ -87,6 +89,7 @@ func (h *ThreadHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	users, err := h.ThreadUseCase.Postpost(slug, posts)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
@@ -106,6 +109,7 @@ func (h *ThreadHandler) ThreadInformation(w http.ResponseWriter, r *http.Request
 	thread, err := h.ThreadUseCase.GetThreadInformation(slug)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)
@@ -178,6 +182,7 @@ func (h *ThreadHandler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 	users, err := h.ThreadUseCase.Vote(slug, vote)
 	if err != nil {
 		h.log.LogError(r.Context(), err)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
 		json.NewEncoder(w).Encode(&err)

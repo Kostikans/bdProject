@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	customerror "github.com/kostikans/bdProject/pkg/error"
@@ -39,7 +38,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	user.Nickname = name
 	users, err := h.UserUseCase.CreateNewUser(user)
 	if err != nil {
-		fmt.Println(users)
 		h.log.LogError(r.Context(), err)
 		w.WriteHeader(customerror.ParseCode(err))
 		json.NewEncoder(w).Encode(&users)

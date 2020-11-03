@@ -2,7 +2,6 @@ package forumRepository
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -19,10 +18,50 @@ func NewForumRepository(sqlx *sqlx.DB) *ForumRepository {
 	return &ForumRepository{sqlx}
 }
 
+func (r *ForumRepository) Clear() error {
+	_, err := r.bd.Exec("DELETE FROM USERS")
+	if err != nil {
+		return customerror.NewCustomError(err, http.StatusInternalServerError, 1)
+	}
+	return nil
+}
+
+func (r *ForumRepository) GetServerStatus() (models.Status, error) {
+	status := models.Status{}
+
+	tx := r.bd.MustBegin()
+	defer tx.Rollback()
+
+	var numOfUser int32
+	query := "SELECT COUNT(*) FROM users"
+	tx.Get(&numOfUser, query)
+
+	var numOfForum int32
+	query = "SELECT COUNT(*) FROM forums"
+	tx.Get(&numOfForum, query)
+
+	var numOfThread int32
+	query = "SELECT COUNT(*) FROM threads"
+	tx.Get(&numOfThread, query)
+
+	var numOfPosts int64
+	query = "SELECT COUNT(*) FROM posts"
+	tx.Get(&numOfPosts, query)
+
+	status.Thread = numOfThread
+	status.Post = numOfPosts
+	status.User = numOfUser
+	status.Forum = numOfForum
+	return status, nil
+}
+
 func (r *ForumRepository) CreateThread(slug string, thread models.Thread) (models.Thread, error) {
 	forum := ""
 	var forum_id int64
-	row, _ := r.bd.Exec(restapi.CheckUserExist, thread.Author)
+	row, err := r.bd.Exec(restapi.CheckUserExist, thread.Author)
+	if err != nil {
+		return thread, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
+	}
 	r.bd.QueryRow(restapi.CheckForumExist, slug).Scan(&forum, &forum_id)
 	count, _ := row.RowsAffected()
 	if count == 0 || forum == "" {
@@ -31,7 +70,7 @@ func (r *ForumRepository) CreateThread(slug string, thread models.Thread) (model
 
 	thread.Forum = forum
 	thread.Forum_ID = forum_id
-	err := r.bd.QueryRow(restapi.CreateThreadRequest, thread.Title, thread.Author, thread.Message, thread.Created, thread.ID, thread.Forum_ID, thread.Forum, thread.Slug).Scan(&thread.ID)
+	err = r.bd.QueryRow(restapi.CreateThreadRequest, thread.Title, thread.Author, thread.Message, thread.Created, thread.Forum_ID, thread.Forum, thread.Slug).Scan(&thread.ID)
 	if err != nil {
 		r.bd.QueryRow(restapi.GetExistThreadReuqest, thread.Slug).Scan(&thread.ID, &thread.Title, &thread.Author,
 			&thread.Message, &thread.Votes, &thread.Slug, &thread.Created, &thread.Forum)
@@ -75,7 +114,6 @@ func (r *ForumRepository) GetForumUsers(slug string, limit int, since string, de
 	if err != nil {
 		return users, err
 	}
-	fmt.Println(slug, limit, since, desc)
 	if desc == false {
 		if since != "" {
 			preQuery := ` AND lower(u.nickname) > lower($2) COLLATE "C" ORDER BY u.nickname  COLLATE "C" ASC LIMIT $3`
@@ -97,20 +135,10 @@ func (r *ForumRepository) GetForumUsers(slug string, limit int, since string, de
 			err = r.bd.Select(&users, query, slug, limit)
 		}
 	}
-
 	if err != nil {
 		return users, customerror.NewCustomError(err, http.StatusNotFound, 1)
 	}
-	fmt.Println(query)
-	usersNew := []models.User{}
-	err = r.bd.Select(&usersNew, restapi.GetVoteUsersRequest, slug)
 
-	if err != nil {
-		return users, customerror.NewCustomError(err, http.StatusNotFound, 1)
-	}
-	for _, usr := range usersNew {
-		users = append(users, usr)
-	}
 	return users, nil
 }
 
@@ -126,7 +154,7 @@ func (r *ForumRepository) GetThreadsFromForum(slug string, limit int, since stri
 
 		return threads, err
 	}
-	fmt.Println(slug, limit, since, desc)
+
 	if desc == false && since != "" {
 		query = "SELECT t.forum,t.slug,thread_id,t.title,author,message,votes,t.slug,t.created " +
 			"FROM forums as f INNER JOIN threads as t on t.forum_id=f.forum_id WHERE f.slug = $1 and t.created >= $2 ORDER BY created ASC LIMIT $3"

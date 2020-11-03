@@ -30,3 +30,11 @@ func (u *ForumUseCase) GetForumUsers(slug string, limit int, since string, desc 
 func (u *ForumUseCase) GetThreadsFromForum(slug string, limit int, since string, desc bool) ([]models.Thread, error) {
 	return u.repository.GetThreadsFromForum(slug, limit, since, desc)
 }
+
+func (u *ForumUseCase) GetServerStatus() (models.Status, error) {
+	return u.repository.GetServerStatus()
+}
+
+func (u *ForumUseCase) Clear() error {
+	return u.repository.Clear()
+}
