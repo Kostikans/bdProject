@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
+
 create table users (
      user_id  serial not null PRIMARY KEY,
      nickname citext UNIQUE ,
@@ -5,8 +7,6 @@ create table users (
      fullname text,
      about text default ''
 );
-
-CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
 
 create table forums(
     forum_id    serial not null PRIMARY KEY,
