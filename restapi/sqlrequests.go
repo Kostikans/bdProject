@@ -37,7 +37,7 @@ const GetExistThreadReuqestToVote = "SELECT thread_id,title,author,message,votes
 
 const GetExistThreadByIdToVote = "SELECT thread_id,title,author,message,votes,forum,slug,created,forum_id FROM threads WHERE thread_id=$1"
 
-const CreatePostRequest = "INSERT INTO posts(post_id,parent,author,message,forum,thread_id,forum_id,created) VALUES(default,$1,$2,$3,$4,$5,$6,$7)"
+const CreatePostRequest = "INSERT INTO posts(post_id,parent,author,message,forum,thread_id,forum_id,created) VALUES(default,$1,$2,$3,$4,$5,$6,$7) RETURNING post_id"
 const GetPrevVote = "SELECT voice FROM votes where nickname=$1 and thread_id=$2"
 const AddVote = "INSERT INTO votes(vote_id,voice,nickname,thread_id) VALUES(default,$1,$2,$3)"
 

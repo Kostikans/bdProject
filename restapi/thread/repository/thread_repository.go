@@ -134,9 +134,6 @@ func (r *ThreadRepository) Postpost(slug_or_id string, posts []models.Post) ([]m
 		return posts, customerror.NewCustomError(err, http.StatusNotFound, 1)
 	}
 
-	if err != nil {
-		return posts, customerror.NewCustomError(err, http.StatusInternalServerError, 1)
-	}
 	create := strfmt.DateTime(time.Now())
 	for index, _ := range posts {
 		posts[index].Forum = forum
@@ -148,13 +145,12 @@ func (r *ThreadRepository) Postpost(slug_or_id string, posts []models.Post) ([]m
 		if count == 0 {
 			return posts, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
 		}
-		fmt.Println(thread_id)
-		_, err = r.bd.Exec(restapi.CreatePostRequest, posts[index].Parent, posts[index].Author, posts[index].Message,
-			forum, thread_id, forum_id, create)
+
+		err = r.bd.QueryRow(restapi.CreatePostRequest, posts[index].Parent, posts[index].Author, posts[index].Message,
+			forum, thread_id, forum_id, create).Scan(&posts[index].ID)
 		if err != nil {
 			return posts, customerror.NewCustomError(err, http.StatusConflict, 1)
 		}
-		posts[index].ID = 42
 
 	}
 	err = r.UpdateForumCount(len(posts), forum_id)
