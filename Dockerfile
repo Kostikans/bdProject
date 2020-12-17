@@ -18,9 +18,9 @@ createdb -O docker docker &&\
 psql -f /opt/bd.sql -d docker &&\
 /etc/init.d/postgresql stop
 ENV POSTGRES_DSN=postgres://docker:docker@localhost/docker
-ENV POSTGRES_USER=PostgresUser
-ENV POSTGRES_PASSWORD=PostgresPassword
-ENV POSTGRES_DB=PostgresDBNameBDProject
+ENV PostgresUser=docker
+ENV PostgresPassword=docker
+ENV PostgresDBNameBDProject=docker
 
 RUN echo "host all all 0.0.0.0/0 md5" > /etc/postgresql/$PGVER/main/pg_hba.conf
 RUN echo "listen_addresses='*'" > /etc/postgresql/$PGVER/main/postgresql.conf
