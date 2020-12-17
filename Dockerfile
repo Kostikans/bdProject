@@ -22,11 +22,11 @@ ENV PostgresUser=docker
 ENV PostgresPassword=docker
 ENV PostgresDBNameBDProject=docker
 
-RUN echo "host all all 0.0.0.0/0 md5" > /etc/postgresql/$PGVER/main/pg_hba.conf
-RUN echo "listen_addresses='*'" > /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVER/main/pg_hba.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
-RUN echo "synchronous_commit='off'" > /etc/postgresql/$PGVER/main/postgresql.conf
-RUN echo "fsync = 'off'" > /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "synchronous_commit='off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
+RUN echo "fsync = 'off'" >> /etc/postgresql/$PGVER/main/postgresql.conf
 
 EXPOSE 5432
 
