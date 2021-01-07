@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"runtime"
 
@@ -74,13 +74,7 @@ func main() {
 	r := NewRouter()
 
 	configs.PrefixPath = initRelativePath()
-	logOutput, err := os.Create("log.txt")
-	if err != nil {
-		panic(err)
-	}
-	defer logOutput.Close()
-
-	log := logger.NewLogger(logOutput)
+	log := logger.NewLogger(ioutil.Discard)
 
 	uRepo := userRepository.NewUserRepository(db)
 	fRepo := forumRepository.NewForumRepository(db)
