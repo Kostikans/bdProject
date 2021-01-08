@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -29,7 +28,7 @@ func (l *CustomLogger) relative(path string) string {
 	return strings.TrimPrefix(filepath.ToSlash(path), configs.PrefixPath)
 }
 
-func (l *CustomLogger) LogError(ctx context.Context, err error) {
+func (l *CustomLogger) LogError(err error) {
 	l.WithFields(logrus.Fields{}).Error(err)
 }
 
@@ -43,13 +42,13 @@ func (l *CustomLogger) StartReq(r http.Request, rid string) {
 	}).Info("request started")
 }
 
-func (l *CustomLogger) EndReq(start time.Time, ctx context.Context) {
+func (l *CustomLogger) EndReq(start time.Time) {
 	l.WithFields(logrus.Fields{
 
 		"elapsed_time,μs": time.Since(start).Microseconds(),
 	}).Info("request ended")
 }
 
-func (l *CustomLogger) LogWarning(ctx context.Context, msg string) {
+func (l *CustomLogger) LogWarning(msg string) {
 	l.WithFields(logrus.Fields{}).Warn(msg)
 }

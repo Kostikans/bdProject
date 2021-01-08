@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/fasthttp/router"
+
+	"github.com/valyala/fasthttp"
+
 	customerror "github.com/kostikans/bdProject/pkg/error"
 
 	"github.com/kostikans/bdProject/models"
 
-	"github.com/gorilla/mux"
 	"github.com/kostikans/bdProject/pkg/logger"
 	"github.com/kostikans/bdProject/restapi/user"
 )
@@ -18,72 +21,69 @@ type UserHandler struct {
 	log         *logger.CustomLogger
 }
 
-func NewUserHandler(r *mux.Router, us user.UseCase, lg *logger.CustomLogger) {
+func NewUserHandler(r *router.Router, us user.UseCase, lg *logger.CustomLogger) {
 	handler := UserHandler{
 		UserUseCase: us,
 		log:         lg,
 	}
-	r.HandleFunc("/api/user/{nickname}/create", handler.CreateUser).Methods("POST")
-	r.HandleFunc("/api/user/{nickname}/profile", handler.GetUser).Methods("GET")
-	r.HandleFunc("/api/user/{nickname}/profile", handler.UpdateUser).Methods("POST")
+	r.Handle("POST", "/api/user/{nickname}/create", handler.CreateUser)
+	r.Handle("GET", "/api/user/{nickname}/profile", handler.GetUser)
+	r.Handle("POST", "/api/user/{nickname}/profile", handler.UpdateUser)
 
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["nickname"]
+func (h *UserHandler) CreateUser(ctx *fasthttp.RequestCtx) {
+	name := ctx.UserValue("nickname").(string)
 
 	user := models.User{}
-	json.NewDecoder(r.Body).Decode(&user)
+	json.Unmarshal(ctx.PostBody(), &user)
 	user.Nickname = name
 	users, err := h.UserUseCase.CreateNewUser(user)
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.WriteHeader(customerror.ParseCode(err))
-		json.NewEncoder(w).Encode(&users)
+		h.log.LogError(err)
+		ctx.SetStatusCode(customerror.ParseCode(err))
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&users)
 		return
 	}
 	user = users[0]
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(&user)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusCreated)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&user)
 
 }
 
-func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["nickname"]
+func (h *UserHandler) GetUser(ctx *fasthttp.RequestCtx) {
+	name := ctx.UserValue("nickname").(string)
 
 	user, err := h.UserUseCase.GetUserInfo(name)
 	if err != nil {
 		errMsg := models.Error{Message: "fdsfsd"}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
-		json.NewEncoder(w).Encode(&errMsg)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&errMsg)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&user)
-	w.WriteHeader(http.StatusOK)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&user)
+	ctx.SetStatusCode(http.StatusOK)
 }
 
-func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["nickname"]
+func (h *UserHandler) UpdateUser(ctx *fasthttp.RequestCtx) {
+	name := ctx.UserValue("nickname").(string)
 
 	user := models.User{}
-	json.NewDecoder(r.Body).Decode(&user)
+	json.Unmarshal(ctx.PostBody(), &user)
 	user.Nickname = name
 	user, err := h.UserUseCase.UpdateUser(user)
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
-		json.NewEncoder(w).Encode(&err)
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&user)
-	w.WriteHeader(http.StatusOK)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&user)
+	ctx.SetStatusCode(http.StatusOK)
 }

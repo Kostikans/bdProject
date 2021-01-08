@@ -8,6 +8,10 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/fasthttp/router"
+
+	"github.com/valyala/fasthttp"
+
 	threadDelivery "github.com/kostikans/bdProject/restapi/thread/delivery"
 	threadRepository "github.com/kostikans/bdProject/restapi/thread/repository"
 	threadUsecase "github.com/kostikans/bdProject/restapi/thread/usecase"
@@ -71,7 +75,7 @@ func main() {
 
 	configs.Init()
 	db := initDB()
-	r := NewRouter()
+	r := router.New()
 
 	configs.PrefixPath = initRelativePath()
 	log := logger.NewLogger(ioutil.Discard)
@@ -89,5 +93,5 @@ func main() {
 	threadDelivery.NewThreadHandler(r, tUse, log)
 
 	log.Info("Server started at port", configs.Port)
-	http.ListenAndServe(configs.Port, r)
+	fasthttp.ListenAndServe(configs.Port, r.Handler)
 }

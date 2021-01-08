@@ -7,6 +7,8 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/bozaro/golorem v0.0.0-20170501165920-50e5b610280b // indirect
 	github.com/bozaro/tech-db-forum v0.2.2 // indirect
+	github.com/buaazp/fasthttprouter v0.1.1
+	github.com/fasthttp/router v1.3.4
 	github.com/go-openapi/analysis v0.19.11 // indirect
 	github.com/go-openapi/errors v0.19.8
 	github.com/go-openapi/loads v0.19.5
@@ -28,6 +30,7 @@ require (
 	github.com/philhofer/fwd v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/tinylib/msgp v1.1.2 // indirect
+	github.com/valyala/fasthttp v1.19.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/net v0.0.0-20201029221708-28c70e62bb1d // indirect
 	golang.org/x/sys v0.0.0-20201029080932-201ba4db2418 // indirect

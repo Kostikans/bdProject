@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/fasthttp/router"
+
+	"github.com/valyala/fasthttp"
+
 	"github.com/kostikans/bdProject/models"
 	customerror "github.com/kostikans/bdProject/pkg/error"
 	"github.com/kostikans/bdProject/pkg/logger"
@@ -17,174 +20,167 @@ type ForumHandler struct {
 	log          *logger.CustomLogger
 }
 
-func NewForumHandler(r *mux.Router, fs forum.UseCase, lg *logger.CustomLogger) {
+func NewForumHandler(r *router.Router, fs forum.UseCase, lg *logger.CustomLogger) {
 	handler := ForumHandler{
 		ForumUseCase: fs,
 		log:          lg,
 	}
-	r.HandleFunc("/api/forum/create", handler.CreateForum).Methods("POST")
-	r.HandleFunc("/api/forum/{slug}/details", handler.GetForumInfo).Methods("GET")
-	r.HandleFunc("/api/forum/{slug}/create", handler.CreateThread).Methods("POST")
-	r.HandleFunc("/api/forum/{slug}/users", handler.GetForumUsers).Methods("GET")
-	r.HandleFunc("/api/forum/{slug}/threads", handler.GetThreadsFromForum).Methods("GET")
-	r.HandleFunc("/api/service/status", handler.GetStatusServer).Methods("GET")
-	r.HandleFunc("/api/service/clear", handler.Clear).Methods("POST")
+	r.Handle("POST", "/api/forum/create", handler.CreateForum)
+	r.Handle("GET", "/api/forum/{slug}/details", handler.GetForumInfo)
+	r.Handle("POST", "/api/forum/{slug}/create", handler.CreateThread)
+	r.Handle("GET", "/api/forum/{slug}/users", handler.GetForumUsers)
+	r.Handle("GET", "/api/forum/{slug}/threads", handler.GetThreadsFromForum)
+	r.Handle("GET", "/api/service/status", handler.GetStatusServer)
+	r.Handle("POST", "/api/service/clear", handler.Clear)
 }
-func (h *ForumHandler) Clear(w http.ResponseWriter, r *http.Request) {
+func (h *ForumHandler) Clear(ctx *fasthttp.RequestCtx) {
 	err := h.ForumUseCase.Clear()
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		return
 
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusOK)
 }
-func (h *ForumHandler) CreateForum(w http.ResponseWriter, r *http.Request) {
+func (h *ForumHandler) CreateForum(ctx *fasthttp.RequestCtx) {
 
 	forum := models.Forum{}
-	json.NewDecoder(r.Body).Decode(&forum)
+	json.Unmarshal(ctx.PostBody(), &forum)
 
 	forum, err := h.ForumUseCase.CreateForum(forum)
 	if err != nil {
 		if customerror.ParseCode(err) == 409 {
-			h.log.LogError(r.Context(), err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(customerror.ParseCode(err))
-			json.NewEncoder(w).Encode(&forum)
+			h.log.LogError(err)
+			ctx.Response.Header.Set("Content-Type", "application/json")
+			ctx.SetStatusCode(customerror.ParseCode(err))
+			json.NewEncoder(ctx.Response.BodyWriter()).Encode(&forum)
 			return
 		} else if customerror.ParseCode(err) == 404 {
-			h.log.LogError(r.Context(), err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(customerror.ParseCode(err))
+			h.log.LogError(err)
+			ctx.Response.Header.Set("Content-Type", "application/json")
+			ctx.SetStatusCode(customerror.ParseCode(err))
 			err := models.Error{Message: "fdsfsd"}
-			json.NewEncoder(w).Encode(&err)
+			json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 			return
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(&forum)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&forum)
 
 }
 
-func (h *ForumHandler) GetForumInfo(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	slug := vars["slug"]
-
+func (h *ForumHandler) GetForumInfo(ctx *fasthttp.RequestCtx) {
+	slug := ctx.UserValue("slug").(string)
 	forum, err := h.ForumUseCase.GetForumInfo(slug)
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
-		json.NewEncoder(w).Encode(&err)
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&forum)
-	w.WriteHeader(http.StatusOK)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&forum)
+	ctx.SetStatusCode(http.StatusOK)
 }
 
-func (h *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
+func (h *ForumHandler) CreateThread(ctx *fasthttp.RequestCtx) {
 
-	vars := mux.Vars(r)
-	slug := vars["slug"]
+	slug := ctx.UserValue("slug").(string)
 
 	thread := models.Thread{}
-	json.NewDecoder(r.Body).Decode(&thread)
+	json.Unmarshal(ctx.PostBody(), &thread)
 
 	thread, err := h.ForumUseCase.CreateThread(slug, thread)
 	if err != nil {
 		if customerror.ParseCode(err) == 404 {
-			h.log.LogError(r.Context(), err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(customerror.ParseCode(err))
+			h.log.LogError(err)
+			ctx.Response.Header.Set("Content-Type", "application/json")
+			ctx.SetStatusCode(customerror.ParseCode(err))
 			err := models.Error{Message: "fdsfsd"}
-			json.NewEncoder(w).Encode(&err)
+			json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 			return
 		} else {
 
-			h.log.LogError(r.Context(), err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(customerror.ParseCode(err))
-			json.NewEncoder(w).Encode(&thread)
+			h.log.LogError(err)
+			ctx.Response.Header.Set("Content-Type", "application/json")
+			ctx.SetStatusCode(customerror.ParseCode(err))
+			json.NewEncoder(ctx.Response.BodyWriter()).Encode(&thread)
 			return
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(&thread)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusCreated)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&thread)
 }
 
-func (h *ForumHandler) GetForumUsers(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	values := r.URL.Query()
-	slug := vars["slug"]
-	since := values.Get("since")
-	limitVar := values.Get("limit")
+func (h *ForumHandler) GetForumUsers(ctx *fasthttp.RequestCtx) {
+	slug := ctx.UserValue("slug").(string)
+	since := string(ctx.URI().QueryArgs().Peek("since"))
+	limitVar := string(ctx.URI().QueryArgs().Peek("limit"))
 	limit, _ := strconv.Atoi(limitVar)
-	descVar := values.Get("desc")
+	descVar := string(ctx.URI().QueryArgs().Peek("desc"))
 	desc, _ := strconv.ParseBool(descVar)
 
 	users, err := h.ForumUseCase.GetForumUsers(slug, limit, since, desc)
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
-		json.NewEncoder(w).Encode(&err)
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 		return
 
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&users)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusOK)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&users)
 }
 
 var count int
 
-func (h *ForumHandler) GetThreadsFromForum(w http.ResponseWriter, r *http.Request) {
+func (h *ForumHandler) GetThreadsFromForum(ctx *fasthttp.RequestCtx) {
 	count++
-	vars := mux.Vars(r)
-	values := r.URL.Query()
-	slug := vars["slug"]
-	since := values.Get("since")
-	limitVar := values.Get("limit")
+	slug := ctx.UserValue("slug").(string)
+	since := string(ctx.URI().QueryArgs().Peek("since"))
+	limitVar := string(ctx.URI().QueryArgs().Peek("limit"))
 	limit, _ := strconv.Atoi(limitVar)
-	descVar := values.Get("desc")
+	descVar := string(ctx.URI().QueryArgs().Peek("desc"))
 	desc, _ := strconv.ParseBool(descVar)
 
 	threads, err := h.ForumUseCase.GetThreadsFromForum(slug, limit, since, desc)
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
-		json.NewEncoder(w).Encode(&err)
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 		return
 
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&threads)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusOK)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&threads)
 }
 
-func (h *ForumHandler) GetStatusServer(w http.ResponseWriter, r *http.Request) {
+func (h *ForumHandler) GetStatusServer(ctx *fasthttp.RequestCtx) {
 
 	threads, err := h.ForumUseCase.GetServerStatus()
 	if err != nil {
-		h.log.LogError(r.Context(), err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(customerror.ParseCode(err))
+		h.log.LogError(err)
+		ctx.Response.Header.Set("Content-Type", "application/json")
+		ctx.SetStatusCode(customerror.ParseCode(err))
 		err := models.Error{Message: "fdsfsd"}
-		json.NewEncoder(w).Encode(&err)
+		json.NewEncoder(ctx.Response.BodyWriter()).Encode(&err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(&threads)
+	ctx.Response.Header.Set("Content-Type", "application/json")
+	ctx.SetStatusCode(http.StatusOK)
+	json.NewEncoder(ctx.Response.BodyWriter()).Encode(&threads)
 }
