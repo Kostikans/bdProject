@@ -10,6 +10,8 @@ const UpdateUserRequest = "UPDATE users SET fullname=$2,email=$3,about=$4 WHERE 
 
 const CheckUserExist = "Select nickname from users WHERE nickname=$1"
 
+const CheckUserOrForumExist = "Select u.nickname,f.slug,f.forum_id from users as u inner join forums as f  WHERE nickname=$1 AND slug=$2"
+
 const PostForumRequest = "INSERT INTO forums(forum_id,slug,title,user_nickname) VALUES(default,$1,$2,$3)"
 
 const GetForumInfoRequest = "SELECT title,user_nickname ,slug,posts,threads FROM forums WHERE slug=$1"

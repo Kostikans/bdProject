@@ -19,7 +19,10 @@ func NewForumRepository(sqlx *sqlx.DB) *ForumRepository {
 }
 
 func (r *ForumRepository) Clear() error {
-	_, err := r.bd.Exec("DELETE FROM USERS")
+	_, err := r.bd.Exec("DELETE FROM users")
+	_, err = r.bd.Exec("DELETE FROM threads")
+	_, err = r.bd.Exec("DELETE FROM forums")
+	_, err = r.bd.Exec("DELETE FROM posts")
 	if err != nil {
 		return customerror.NewCustomError(err, http.StatusInternalServerError, 1)
 	}
@@ -56,20 +59,16 @@ func (r *ForumRepository) GetServerStatus() (models.Status, error) {
 }
 
 func (r *ForumRepository) CreateThread(slug string, thread models.Thread) (models.Thread, error) {
-	forum := ""
-	var forum_id int64
 	row, err := r.bd.Exec(restapi.CheckUserExist, thread.Author)
 	if err != nil {
 		return thread, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
 	}
-	r.bd.QueryRow(restapi.CheckForumExist, slug).Scan(&forum, &forum_id)
+	r.bd.QueryRow(restapi.CheckForumExist, slug).Scan(&thread.Forum, &thread.Forum_ID)
 	count, _ := row.RowsAffected()
-	if count == 0 || forum == "" {
+	if count == 0 || thread.Forum == "" {
 		return thread, customerror.NewCustomError(errors.New(""), http.StatusNotFound, 1)
 	}
 
-	thread.Forum = forum
-	thread.Forum_ID = forum_id
 	err = r.bd.QueryRow(restapi.CreateThreadRequest, thread.Title, thread.Author, thread.Message, thread.Created, thread.Forum_ID, thread.Forum, thread.Slug).Scan(&thread.ID)
 	if err != nil {
 		r.bd.QueryRow(restapi.GetExistThreadReuqest, thread.Slug).Scan(&thread.ID, &thread.Title, &thread.Author,

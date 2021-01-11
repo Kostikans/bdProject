@@ -1,5 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
-
+SET synchronous_commit to OFF;
 create table users (
      user_id  serial not null PRIMARY KEY,
      nickname citext UNIQUE ,
@@ -14,11 +14,7 @@ create table forums(
     threads       int default 0,
     posts         int default 0,
     title         text,
-    user_nickname    citext,
-    CONSTRAINT fk_threads
-        FOREIGN KEY(user_nickname)
-        REFERENCES users(nickname)
-        ON DELETE CASCADE
+    user_nickname    citext
 );
 
 create table threads(
@@ -30,26 +26,18 @@ create table threads(
    message  text,
    votes int default 0,
    slug  citext default '',
-   created TIMESTAMPTZ  DEFAULT NOW(),
-   CONSTRAINT fk_threads
-       FOREIGN KEY(forum_id)
-           REFERENCES forums(forum_id)
-           ON DELETE CASCADE
+   created TIMESTAMPTZ  DEFAULT NOW()
 );
 
     CREATE UNIQUE INDEX nul_uni_idx ON threads(slug)
         WHERE slug not in ('');
 
 create table votes(
-    vote_id serial not null PRIMARY KEY,
+    vote_id serial PRIMARY KEY,
     voice int,
-    nickname  citext  not null,
-    thread_id int not null,
-    UNIQUE (thread_id,nickname),
-    CONSTRAINT fk_votes
-        FOREIGN KEY (nickname)
-            REFERENCES users(nickname)
-            ON DELETE CASCADE
+    nickname  citext ,
+    thread_id int ,
+    UNIQUE (thread_id,nickname)
 );
 
 create table posts(
@@ -63,10 +51,6 @@ create table posts(
     message text,
     parent int default NULL,
     parents  bigint[] default array []::INTEGER[],
-     CONSTRAINT fk_posts
-        FOREIGN KEY(thread_id)
-            REFERENCES threads(thread_id)
-            ON DELETE CASCADE
 );
 
 CREATE INDEX forum_slug_idx ON forums (slug);
@@ -77,6 +61,10 @@ CREATE INDEX pid_idx ON posts ((posts.parents[1]), post_id);
 CREATE INDEX parents_idx ON posts ((posts.parents[1]));
 CREATE INDEX thread_idx ON posts (thread_id);
 CREATE INDEX pare_idx ON posts ((posts.parent));
+
+create index if not exists slug_id on threads (slug);
+create index if not exists f_created_idx on threads (forum, created);
+create index if not exists t_author_idx on threads (author, forum);
 
 CREATE INDEX on votes(nickname,thread_id);
 
@@ -124,12 +112,6 @@ CREATE TABLE forum_users
 (
     nickname citext NOT NULL,
     forum    citext NOT NULL,
-    FOREIGN KEY (nickname)
-        REFERENCES users(nickname)
-        ON DELETE CASCADE ,
-    FOREIGN KEY (forum)
-        REFERENCES forums(slug)
-        ON DELETE  CASCADE ,
     UNIQUE (nickname,forum)
 );
 
