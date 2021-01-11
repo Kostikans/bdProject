@@ -1,5 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
-SET synchronous_commit to OFF;
+
 create table users (
      user_id  serial not null PRIMARY KEY,
      nickname citext UNIQUE ,
