@@ -29,7 +29,7 @@ create table threads(
    created TIMESTAMPTZ  DEFAULT NOW()
 );
 
-    CREATE UNIQUE INDEX nul_uni_idx ON threads(slug)
+CREATE UNIQUE INDEX nul_uni_idx ON threads(slug)
         WHERE slug not in ('');
 
 create table votes(
@@ -50,7 +50,7 @@ create table posts(
     is_edited bool DEFAULT false,
     message text,
     parent int default NULL,
-    parents  bigint[] default array []::INTEGER[],
+    parents  bigint[] default array []::INTEGER[]
 );
 
 CREATE INDEX forum_slug_idx ON forums (slug);
